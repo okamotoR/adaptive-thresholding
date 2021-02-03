@@ -1,0 +1,12 @@
+rust+denoのやり方
+
+wasm-bindgen...rustをwebassemblyにするためのコマンド群
+wasm-pack...wasm-bindgenをラッピングしたやつ
+
+wasm-packはdenoに対応してないのでwasm-bindgenも使ってtsファイルを作る。
+どう見ても変なやり方
+wasm-pack build
+wasm-bindgen target/wasm32-unknown-unknown/release/adaptive_thresholding.wasm --out-dir pkg --target deno
+
+
+deno run deno/hello.ts --allow-read

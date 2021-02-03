@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <input type="file" onchange="onChange(event)">
+</body>
+</html>
+<script>
+import { say } from "./pkg/adaptive_thresholding.js";
+
+
+function onChange(event) {
+    let reader = new FileReader();
+    reader.onload = function() {
+        // ファイルのテキストがここにプリントされる
+        console.log(reader.result)
+    };
+    let file = event.target.files[0];
+    reader.readAsBinaryString(file);
+}
+</script>
