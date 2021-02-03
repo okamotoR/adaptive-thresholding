@@ -5,6 +5,7 @@ import {
 
 type Resp = {
   status: number;
+  headers?:Headers;
   body: string | Deno.File;
 };
 
@@ -23,13 +24,24 @@ for await (const req of s) {
 }
 
 async function req2Response(req: ServerRequest): Promise<Resp> {
-  if (req.method === "GET" && req.url === "/") {
-    URL;
-    const file = await Deno.open("./public/html/index.html");
-    return {
-      status: 200,
-      body: file,
-    };
+  if (req.method === "GET") {
+    if (req.url === "/") {
+      const file = await Deno.open("./public/index.html");
+      return {
+        status: 200,
+        body: file,
+      };
+    }
+    const jsMatch = req.url.match(/\/public\/js\/(?<path>.+)/)
+    if (jsMatch) {
+      const path = jsMatch.groups?.path;
+      const file = await Deno.open(`./public/js/${path}`);
+      return {
+        status: 200,
+        headers: new Headers({ "content-type": "text/javascript", }),
+        body: file,
+      };
+    }
   }
   // if (req.method === "GET" && req.url === "/bye") {
   //   return {
