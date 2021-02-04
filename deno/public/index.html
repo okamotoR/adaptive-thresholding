@@ -10,15 +10,22 @@
 </body>
 </html>
 <script type="module">
-import { say } from "./public/js/pkg/adaptive_thresholding.js";
+import init, { say } from "./public/js/pkg/adaptive_thresholding.js";
 
-function onChange(event) {
+let initialized = false
+async function onChange(event) {
+    if (!initialized) {
+        await init();
+    }
     let reader = new FileReader();
     reader.onload = function() {
+        console.log(say("a"))
         // ファイルのテキストがここにプリントされる
-        console.log(reader.result)
+        // console.log(reader.result)
     };
     let file = event.target.files[0];
     reader.readAsBinaryString(file);
 }
+
+window.onChange = onChange
 </script>

@@ -45,11 +45,11 @@ pub fn main() {
     assert_eq!(reader.format(), Some(ImageFormat::Pnm));
 
     let image = reader.decode().unwrap();
-    let grayImage = image.grayscale();
-    let uooo = grayImage.to_luma8();
+    let gray_image = image.grayscale();
+    let uooo = gray_image.to_luma8();
 
 
-    let integralImage = integral_image::<_, u32>(&uooo);
+    let integral_image = integral_image::<_, u32>(&uooo);
 }
 
 

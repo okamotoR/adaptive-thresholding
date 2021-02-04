@@ -32,10 +32,36 @@ async function req2Response(req: ServerRequest): Promise<Resp> {
         body: file,
       };
     }
-    const jsMatch = req.url.match(/\/public\/js\/(?<path>.+)/)
+    const jsMatch = req.url.match(/\/public\/js\/(?<path>.+)\.(?<extension>.+)/)
     if (jsMatch) {
       const path = jsMatch.groups?.path;
-      const file = await Deno.open(`./public/js/${path}`);
+      const extension = jsMatch.groups?.extension;
+      const file = await Deno.open(`./public/js/${path}.${extension}`);
+      switch (extension) {
+        case "js":
+          return {
+            status: 200,
+            headers: new Headers({ "content-type": "text/javascript", }),
+            body: file,
+          };
+        case "ts":
+          return {
+            status: 200,
+            headers: new Headers({ "content-type": "text/typescript", }),
+            body: file,
+          };
+        case "wasm":
+          return {
+            status: 200,
+            headers: new Headers({ "content-type": "application/wasm", }),
+            body: file,
+          };
+        default:
+          return {
+            status: 200,
+            body: file,
+          };
+      }
       return {
         status: 200,
         headers: new Headers({ "content-type": "text/javascript", }),
