@@ -56,6 +56,12 @@ async function req2Response(req: ServerRequest): Promise<Resp> {
             headers: new Headers({ "content-type": "application/wasm", }),
             body: file,
           };
+        case "ico":
+          return {
+            status: 200,
+            headers: new Headers({ "content-type": "image/x-icon", }),
+            body: file,
+          };
         default:
           return {
             status: 200,

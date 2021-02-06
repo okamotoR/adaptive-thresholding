@@ -34,6 +34,13 @@ pub fn say(s: &str) -> i32 {
   return 11;
 }
 
+#[wasm_bindgen]
+pub fn vec_test(s: Vec<u8>) -> Vec<u8> {
+  let r = String::from("hello ");
+  return s;
+}
+
+
 
 pub fn main() {
     let raw_data = b"P1 2 2\n\

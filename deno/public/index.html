@@ -6,26 +6,49 @@
     <title>Document</title>
 </head>
 <body>
-    <input type="file" onchange="onChange(event)">
+    <input type="file" accept="image/*" onchange="setImage(event)">
+    <canvas id="workspace"></canvas>
 </body>
 </html>
 <script type="module">
 import init, { say } from "./public/js/pkg/adaptive_thresholding.js";
 
 let initialized = false
-async function onChange(event) {
+async function setImage(event) {
     if (!initialized) {
         await init();
     }
-    let reader = new FileReader();
-    reader.onload = function() {
-        console.log(say("a"))
-        // ファイルのテキストがここにプリントされる
-        // console.log(reader.result)
-    };
-    let file = event.target.files[0];
-    reader.readAsBinaryString(file);
+    const file = event.target.files[0];
+
+    // FileReaderはawait不可
+    const reader = new FileReader();
+    reader.onload = async function() {
+        const img = await new Promise((resolve) => {
+            const img = new Image();
+            img.src = reader.result;
+            img.onload = () => resolve(img);
+        })
+
+        const canvasEl = document.createElement('canvas');
+        const ctx = canvasEl.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        console.log(img.width)
+        const imageData = ctx.getImageData(0, 0, img.width, img.width);
+
+        // const buffer = await file.arrayBuffer();
+        // const imageUint8Array = new Uint8ClampedArray(buffer);
+        // const imageData = new ImageData(imageUint8Array, img.width, img.height);
+
+        loadImage(imageData);
+    }
+    reader.readAsDataURL(file)
 }
 
-window.onChange = onChange
+function loadImage(imageData) {
+    const canvas = document.getElementById('workspace');
+    const ctx = canvas.getContext('2d');
+    ctx.putImageData(imageData,0,0);
+}
+
+window.setImage = setImage
 </script>
