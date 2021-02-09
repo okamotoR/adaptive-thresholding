@@ -16,10 +16,7 @@ for await (const req of s) {
     req.respond(await req2Response(req));
   } catch (err) {
     console.log(err);
-    req.respond({
-      status: 404,
-      body: "not found",
-    });
+    req.respond(getNotFoundResponse());
   }
 }
 
@@ -32,11 +29,11 @@ async function req2Response(req: ServerRequest): Promise<Resp> {
         body: file,
       };
     }
-    const jsMatch = req.url.match(/\/public\/js\/(?<path>.+)\.(?<extension>.+)/)
-    if (jsMatch) {
-      const path = jsMatch.groups?.path;
-      const extension = jsMatch.groups?.extension;
-      const file = await Deno.open(`./public/js/${path}.${extension}`);
+    const publicMatch = req.url.match(/\/public\/(?<path>.+)\.(?<extension>.+)/)
+    if (publicMatch) {
+      const path = publicMatch.groups?.path;
+      const extension = publicMatch.groups?.extension;
+      const file = await Deno.open(`./public/${path}.${extension}`);
       switch (extension) {
         case "js":
           return {
@@ -56,31 +53,20 @@ async function req2Response(req: ServerRequest): Promise<Resp> {
             headers: new Headers({ "content-type": "application/wasm", }),
             body: file,
           };
-        case "ico":
-          return {
-            status: 200,
-            headers: new Headers({ "content-type": "image/x-icon", }),
-            body: file,
-          };
         default:
           return {
             status: 200,
+            headers: new Headers({ "content-type": "text/javascript", }),
             body: file,
           };
       }
-      return {
-        status: 200,
-        headers: new Headers({ "content-type": "text/javascript", }),
-        body: file,
-      };
     }
   }
-  // if (req.method === "GET" && req.url === "/bye") {
-  //   return {
-  //     status: 200,
-  //     body: say(" World\n") + "",
-  //   };
-  // }
+  return getNotFoundResponse();
+}
+
+
+function getNotFoundResponse(): Resp {
   return {
     status: 404,
     body: "not found",

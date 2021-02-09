@@ -6,15 +6,19 @@
     <title>Document</title>
 </head>
 <body>
-    <input type="file" accept="image/*" onchange="setImage(event)">
+    <input type="file" accept="image/*" onchange="initImageData(event)">
     <canvas id="workspace"></canvas>
 </body>
 </html>
 <script type="module">
-import init, { say } from "./public/js/pkg/adaptive_thresholding.js";
+import init, { raw_img_to_vec } from "./public/js/pkg/adaptive_thresholding.js";
 
 let initialized = false
-async function setImage(event) {
+let width = null;
+let height = null;
+let grayImageU8Array = null;
+
+async function initImageData(event) {
     if (!initialized) {
         await init();
     }
@@ -28,16 +32,24 @@ async function setImage(event) {
             img.src = reader.result;
             img.onload = () => resolve(img);
         })
+        width = img.width;
+        height = img.height;
+        const buffer = await file.arrayBuffer();
+        const raw_data = new Uint8Array(buffer);
 
-        const canvasEl = document.createElement('canvas');
-        const ctx = canvasEl.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        console.log(img.width)
-        const imageData = ctx.getImageData(0, 0, img.width, img.width);
+        grayImageU8Array = raw_img_to_vec(raw_data);
 
-        // const buffer = await file.arrayBuffer();
-        // const imageUint8Array = new Uint8ClampedArray(buffer);
-        // const imageData = new ImageData(imageUint8Array, img.width, img.height);
+        // console.log(grayImageU8Array);
+        // console.log(width);
+        // console.log(height);
+
+        // const canvasEl = document.createElement('canvas');
+        // const ctx = canvasEl.getContext("2d");
+        // ctx.drawImage(img, 0, 0);
+        // console.log(img.width)
+        // const imageData = ctx.getImageData(0, 0, img.width, img.width);
+
+        const imageData = createImageData(grayImageU8Array, width, height);
 
         loadImage(imageData);
     }
@@ -50,5 +62,13 @@ function loadImage(imageData) {
     ctx.putImageData(imageData,0,0);
 }
 
-window.setImage = setImage
+function createImageData(grayImageU8Array, width, height) {
+    let clampedArray = [];
+    grayImageU8Array.forEach(pixel => {
+        clampedArray.push(255 - pixel, 255 - pixel, 255 - pixel, 255);
+    });
+    return new ImageData(new Uint8ClampedArray(clampedArray), width, height);
+}
+
+window.initImageData = initImageData
 </script>
