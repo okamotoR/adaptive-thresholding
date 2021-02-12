@@ -9,21 +9,33 @@ use std::panic;
 use image::ImageBuffer;
 use image::DynamicImage;
 use image::io::Reader;
-use imageproc::integral_image::integral_image;
-use imageproc::integral_image::integral_squared_image;
+use imageproc::integral_image::{integral_image, integral_squared_image, sum_image_pixels};
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+
+#[test]
+fn normalize_gray_image_test1() {
+    assert_eq!(normalize_gray_image(vec![1,52,31]), vec![0,255,150]);
+}
+#[test]
+fn normalize_gray_image_test2() {
+    assert_eq!(normalize_gray_image(vec![1,255,30]), vec![0,255,29]);
 }
 
-#[wasm_bindgen]
-extern {
-    pub fn alert(s: &str);
+#[test]
+fn generate_base_paper_image_vec_test1() {
+    assert_eq!(generate_base_paper_image_vec(vec![1,1,1,1,10,1,1,1,1],3,3,1), vec![3+4,2+3,3+4,2+3,2+2,2+3,3+4,2+3,3+4]);
 }
+
+#[test]
+fn generate_line_vec_test1() {
+    assert_eq!(generate_line_vec(vec![1,1,1,1,10,1,1,1,1],vec![1,1,1,1,1,1,1,1,1]), vec![0,0,0,0,9,0,0,0,0]);
+}
+
+
+// #[wasm_bindgen]
+// extern {
+//     pub fn alert(s: &str);
+// }
 
 #[wasm_bindgen]
 pub fn raw_img_to_gray_vec(raw_data: Vec<u8>) -> Vec<u8> {
@@ -53,7 +65,7 @@ pub fn normalize_gray_image(gray_image_vec: Vec<u8>) -> Vec<u8> {
     };
     let normalize_magnification:f32 = (255 as f32)/((max-min) as f32);
     return gray_image_vec.into_iter()
-        .map(|n| (((n - min) * 255) as f32 * normalize_magnification) )
+        .map(|n| ((n - min) as f32 * normalize_magnification) )
         .map(|n| if n > 255.0 {
                 255.0
             } else if n < 0.0 {
@@ -73,12 +85,12 @@ pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height
     panic::set_hook(Box::new(console_error_panic_hook::hook));
     let gray_image = ImageBuffer::<image::Luma<u8>, Vec<_>>
         ::from_vec(width, height, gray_image_vec).unwrap();
-    let integral_image = integral_image::<_, u8>(&gray_image);// (width+1,height+1)
-    let integral_squared_image = integral_squared_image::<_, u8>(&gray_image);// (width+1,height+1)
+    let integral_image = integral_image::<_, u32>(&gray_image);// (width+1,height+1)
+    let integral_squared_image = integral_squared_image::<_, u32>(&gray_image);// (width+1,height+1)
 
     let mut base_paper_image_vec = Vec::new();
-    for y in 1..=height {
-        for x in 1..=width {
+    for y in 0..height {
+        for x in 0..width {
             let start_x:u32 = if x > radius {
                     x - radius
                 } else {
@@ -92,26 +104,20 @@ pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height
             let end_x:u32 = if x + radius < width {
                     x + radius
                 } else {
-                    width
+                    width - 1
                 };
             let end_y:u32 = if y + radius < height {
                     y + radius
                 } else {
-                    height
+                    height- 1
                 };
 
-            let partial_sum:u32 = integral_image.get_pixel(end_x, end_y)[0] as u32
-                - integral_image.get_pixel(end_x, start_y)[0] as u32
-                - integral_image.get_pixel(start_x, end_y)[0] as u32
-                + integral_image.get_pixel(start_x, start_y)[0] as u32;
-            let partial_sq_sum:u32 = integral_squared_image.get_pixel(end_x, end_y)[0] as u32
-                - integral_squared_image.get_pixel(end_x, start_y)[0] as u32
-                - integral_squared_image.get_pixel(start_x, end_y)[0] as u32
-                + integral_squared_image.get_pixel(start_x, start_y)[0] as u32;
-            let pixel_sum:u32 = (end_x - start_x) * (end_y - start_y);
+            let partial_sum:u32 = sum_image_pixels(&integral_image,start_x,start_y,end_x,end_y)[0];
+            let partial_sq_sum:u32 = sum_image_pixels(&integral_squared_image,start_x,start_y,end_x,end_y)[0];
+            let pixel_sum:u32 = (end_x - start_x + 1) * (end_y - start_y + 1);
 
             let average:f32 = partial_sum as f32 / pixel_sum as f32;
-            let deviation:f32 = (partial_sq_sum as f32 / pixel_sum as f32 - (partial_sum * partial_sum) as f32).sqrt();
+            let deviation:f32 = (partial_sq_sum as f32 / pixel_sum as f32 - (average * average) as f32).sqrt();
 
             let base:u8 = (average + deviation) as u8;
             base_paper_image_vec.push(base);
