@@ -7,7 +7,7 @@
 </head>
 <body>
     <input type="file" accept="image/*" onchange="initImageData(event)">
-    <canvas id="workspace"></canvas>
+    <canvas id="workspace" width="400px" height="400px"></canvas>
     <div>
         <span>
             <span>roughness</span>
@@ -25,6 +25,7 @@
 <script type="module">
 import init, { raw_img_to_gray_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec } from "./public/js/pkg/adaptive_thresholding.js";
 import SliderInputManager from "./public/js/slider_input_manager.js";
+import CanvasManager from "./public/js/canvas_manager.js";
 
 let initialized = false
 let width = null;
@@ -42,6 +43,7 @@ const brightnessSliderManager = new SliderInputManager(
     document.getElementById('brightnessRange'),
     10
 );
+const canvasManager = new CanvasManager(document.getElementById('workspace'));
 
 async function initImageData(event) {
     if (!initialized) {
@@ -65,10 +67,11 @@ async function initImageData(event) {
 
         const basePaperImageU8Array = generate_base_paper_image_vec(seedGrayImageU8Array, width, height, roughnessSliderManager.value);
         lineImageU8Array = generate_line_vec(seedGrayImageU8Array, basePaperImageU8Array);
-        const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, brightnessSliderManager.value);
+        const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
 
         const imageData = createImageData(thresholdImageU8Array, width, height);
         loadImageOnCanvas(imageData);
+        initialized = true;
     }
     reader.readAsDataURL(file)
 }
@@ -84,7 +87,7 @@ function changeRoughness(event) {
     }
     const basePaperImageU8Array = generate_base_paper_image_vec(seedGrayImageU8Array, width, height, roughnessSliderManager.value);
     lineImageU8Array = generate_line_vec(seedGrayImageU8Array, basePaperImageU8Array);
-    const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, brightnessSliderManager.value);
+    const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
 
     const imageData = createImageData(thresholdImageU8Array, width, height);
     loadImageOnCanvas(imageData);
@@ -99,22 +102,21 @@ function changeBrightness(event) {
     if (!initialized) {
         return;
     }
-    const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, brightnessSliderManager.value);
+    const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
 
     const imageData = createImageData(thresholdImageU8Array, width, height);
     loadImageOnCanvas(imageData);
 }
 
 function loadImageOnCanvas(imageData) {
-    const canvas = document.getElementById('workspace');
-    const ctx = canvas.getContext('2d');
-    ctx.putImageData(imageData,0,0);
+    window.console.log('load');
+    canvasManager.loadImage(imageData, width, height);
 }
 
 function createImageData(grayImageU8Array, width, height) {
     let clampedArray = [];
     grayImageU8Array.forEach(pixel => {
-        clampedArray.push(255 - pixel, 255 - pixel, 255 - pixel, 255);
+        clampedArray.push(pixel, pixel, pixel, 255);
     });
     return new ImageData(new Uint8ClampedArray(clampedArray), width, height);
 }

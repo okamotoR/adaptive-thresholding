@@ -28,7 +28,7 @@ fn generate_base_paper_image_vec_test1() {
 
 #[test]
 fn generate_line_vec_test1() {
-    assert_eq!(generate_line_vec(vec![1,1,1,1,10,1,1,1,1],vec![1,1,1,1,1,1,1,1,1]), vec![0,0,0,0,9,0,0,0,0]);
+    assert_eq!(generate_line_vec(vec![10,10,10,10,1,10,10,10,10],vec![10,10,10,10,10,10,10,10,10]), vec![255,255,255,255,0,255,255,255,255]);
 }
 
 
@@ -37,6 +37,9 @@ fn generate_line_vec_test1() {
 //     pub fn alert(s: &str);
 // }
 
+/**
+ * (0,0,0,0)のピクセルは0として判定されるので注意
+ */
 #[wasm_bindgen]
 pub fn raw_img_to_gray_vec(raw_data: Vec<u8>) -> Vec<u8> {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -85,10 +88,10 @@ pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height
     panic::set_hook(Box::new(console_error_panic_hook::hook));
     let gray_image = ImageBuffer::<image::Luma<u8>, Vec<_>>
         ::from_vec(width, height, gray_image_vec).unwrap();
-    let integral_image = integral_image::<_, u32>(&gray_image);// (width+1,height+1)
-    let integral_squared_image = integral_squared_image::<_, u32>(&gray_image);// (width+1,height+1)
+    let integral_image = integral_image::<_, u64>(&gray_image);// (width+1,height+1)
+    let integral_squared_image = integral_squared_image::<_, u64>(&gray_image);// (width+1,height+1)
 
-    let mut base_paper_image_vec = Vec::new();
+    let mut base_paper_image_vec:Vec<u8> = Vec::new();
     for y in 0..height {
         for x in 0..width {
             let start_x:u32 = if x > radius {
@@ -112,15 +115,23 @@ pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height
                     height- 1
                 };
 
-            let partial_sum:u32 = sum_image_pixels(&integral_image,start_x,start_y,end_x,end_y)[0];
-            let partial_sq_sum:u32 = sum_image_pixels(&integral_squared_image,start_x,start_y,end_x,end_y)[0];
+            let partial_sum:u64 = sum_image_pixels(&integral_image,start_x,start_y,end_x,end_y)[0];
+            let partial_sq_sum:u64 = sum_image_pixels(&integral_squared_image,start_x,start_y,end_x,end_y)[0];
             let pixel_sum:u32 = (end_x - start_x + 1) * (end_y - start_y + 1);
 
-            let average:f32 = partial_sum as f32 / pixel_sum as f32;
-            let deviation:f32 = (partial_sq_sum as f32 / pixel_sum as f32 - (average * average) as f32).sqrt();
+            let average:f64 = partial_sum as f64 / pixel_sum as f64;
+            let deviation:f64 = (partial_sq_sum as f64 / pixel_sum as f64 - (average * average) as f64).sqrt();
 
-            let base:u8 = (average + deviation) as u8;
-            base_paper_image_vec.push(base);
+            let base_f64:f64 = average + deviation;
+            base_paper_image_vec.push(
+                if base_f64 > u8::max_value() as f64 {
+                    u8::max_value()
+                } else if base_f64 < u8::min_value() as f64 {
+                    u8::min_value()
+                } else {
+                    base_f64 as u8
+                }
+            );
         }
     }
     return base_paper_image_vec;
@@ -132,10 +143,22 @@ pub fn generate_line_vec(gray_image_vec: Vec<u8>, base_paper_image_vec: Vec<u8>)
         panic!();
     }
 
-    return gray_image_vec.iter()
-    .zip(base_paper_image_vec.iter())
-    .map(|(n, m)| *n - *m)
-    .collect();
+    return normalize_gray_image(
+        gray_image_vec.iter()// ￣￣\/￣￣
+        .zip(base_paper_image_vec.iter())// ￣￣￣￣￣￣
+        .map(|(n, m)| *m as i16 - *n as i16)
+        .map(|n|
+            if n > u8::max_value() as i16 {
+                u8::max_value()
+            } else if n < u8::min_value() as i16 {
+                u8::min_value()
+            } else {
+                n as u8
+            }
+        )// ___/\___
+        .map(|n| u8::max_value() - n)
+        .collect()
+    );
 }
 
 #[wasm_bindgen]
@@ -143,9 +166,9 @@ pub fn threshold_line_vec(line_vec: Vec<u8>, threshold_level: u8) -> Vec<u8> {
     return line_vec.iter()
     .map(|n|*n)
     .map(|n| if n < threshold_level {
-        0
+        u8::min_value()
     } else {
-        255
+        u8::max_value()
     })
     .collect();
 }
