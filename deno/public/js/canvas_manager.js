@@ -13,6 +13,7 @@ class CanvasManager {
         this.tmpCanvasEl.height = height;
         this.tmpCtx.putImageData(imageData,0,0);
         this.ctx.restore();// scale=1に復元
+        this.ctx.clearRect(0, 0, this.ctx.canvas.clientWidth, this.ctx.canvas.clientHeight);
         this.ctx.save();// scale=1をセーブ
         const lessRatio = Math.min(this.canvasEl.width / width, this.canvasEl.height / height);
         this.ctx.scale(lessRatio,lessRatio);

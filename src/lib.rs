@@ -9,7 +9,7 @@ use std::panic;
 use image::ImageBuffer;
 use image::DynamicImage;
 use image::io::Reader;
-use imageproc::integral_image::{integral_image, integral_squared_image, sum_image_pixels};
+use imageproc::integral_image::{integral_image, integral_squared_image, sum_image_pixels, variance};
 
 
 #[test]
@@ -82,14 +82,15 @@ pub fn normalize_gray_image(gray_image_vec: Vec<u8>) -> Vec<u8> {
 }
 
 // generate image without line
+// bottle neck
 // ￣￣￣\/\/￣￣￣ => average:￣￣￣----￣￣￣ + deviation:_____----_____ = base:￣￣￣￣￣￣￣￣
 #[wasm_bindgen]
 pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height :u32, radius: u32) -> Vec<u8> {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
     let gray_image = ImageBuffer::<image::Luma<u8>, Vec<_>>
         ::from_vec(width, height, gray_image_vec).unwrap();
-    let integral_image = integral_image::<_, u64>(&gray_image);// (width+1,height+1)
-    let integral_squared_image = integral_squared_image::<_, u64>(&gray_image);// (width+1,height+1)
+    let integral_image = integral_image::<_, u32>(&gray_image);// (width+1,height+1)
+    let integral_squared_image = integral_squared_image::<_, u32>(&gray_image);// (width+1,height+1)
 
     let mut base_paper_image_vec:Vec<u8> = Vec::new();
     for y in 0..height {
@@ -115,14 +116,13 @@ pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height
                     height- 1
                 };
 
-            let partial_sum:u64 = sum_image_pixels(&integral_image,start_x,start_y,end_x,end_y)[0];
-            let partial_sq_sum:u64 = sum_image_pixels(&integral_squared_image,start_x,start_y,end_x,end_y)[0];
+            let partial_sum:u32 = sum_image_pixels(&integral_image,start_x,start_y,end_x,end_y)[0];
             let pixel_sum:u32 = (end_x - start_x + 1) * (end_y - start_y + 1);
 
             let average:f64 = partial_sum as f64 / pixel_sum as f64;
-            let deviation:f64 = (partial_sq_sum as f64 / pixel_sum as f64 - (average * average) as f64).sqrt();
+            let variance:f64 = variance(&integral_image, &integral_squared_image, start_x,start_y,end_x,end_y);
 
-            let base_f64:f64 = average + deviation;
+            let base_f64:f64 = average + variance.sqrt();
             base_paper_image_vec.push(
                 if base_f64 > u8::max_value() as f64 {
                     u8::max_value()
