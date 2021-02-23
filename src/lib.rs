@@ -46,7 +46,7 @@ pub fn raw_img_to_gray_vec(raw_data: Vec<u8>) -> Vec<u8> {
     let image = decode_raw_data(raw_data);
     let gray_image = image.grayscale();
     let gray_vec = gray_image.to_luma8().into_vec();
-    return normalize_gray_image(gray_vec);
+    normalize_gray_image(gray_vec)
 }
 
 pub fn decode_raw_data(raw_data: Vec<u8>) -> DynamicImage {
@@ -54,7 +54,7 @@ pub fn decode_raw_data(raw_data: Vec<u8>) -> DynamicImage {
     let reader = Reader::new(Cursor::new(raw_data))
         .with_guessed_format()
         .expect("Cursor io never fails");
-    return reader.decode().unwrap();
+    reader.decode().unwrap()
 }
 
 pub fn normalize_gray_image(gray_image_vec: Vec<u8>) -> Vec<u8> {
@@ -66,8 +66,8 @@ pub fn normalize_gray_image(gray_image_vec: Vec<u8>) -> Vec<u8> {
         Some(n) => *n,
         None => 255,
     };
-    let normalize_magnification:f32 = (255 as f32)/((max-min) as f32);
-    return gray_image_vec.into_iter()
+    let normalize_magnification:f32 = (255_f32)/((max-min) as f32);
+    gray_image_vec.into_iter()
         .map(|n| ((n - min) as f32 * normalize_magnification) )
         .map(|n| if n > 255.0 {
                 255.0
@@ -78,7 +78,7 @@ pub fn normalize_gray_image(gray_image_vec: Vec<u8>) -> Vec<u8> {
             }
         )
         .map(|n| n as u8 )
-        .collect();
+        .collect()
 }
 
 // generate image without line
@@ -134,7 +134,7 @@ pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height
             );
         }
     }
-    return base_paper_image_vec;
+    base_paper_image_vec
 }
 
 #[wasm_bindgen]
@@ -164,8 +164,7 @@ pub fn generate_line_vec(gray_image_vec: Vec<u8>, base_paper_image_vec: Vec<u8>)
 #[wasm_bindgen]
 pub fn threshold_line_vec(line_vec: Vec<u8>, threshold_level: u8) -> Vec<u8> {
     return line_vec.iter()
-    .map(|n|*n)
-    .map(|n| if n < threshold_level {
+    .map(|n| if *n < threshold_level {
         u8::min_value()
     } else {
         u8::max_value()
