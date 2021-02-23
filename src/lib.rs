@@ -1,11 +1,13 @@
 extern crate wasm_bindgen;
 extern crate image;
+extern crate rayon;
 extern crate imageproc;
 extern crate console_error_panic_hook;
 
 use wasm_bindgen::prelude::*;
 use std::io::Cursor;
 use std::panic;
+use rayon::prelude::*;
 use image::ImageBuffer;
 use image::DynamicImage;
 use image::io::Reader;
@@ -32,10 +34,11 @@ fn generate_line_vec_test1() {
 }
 
 
-// #[wasm_bindgen]
-// extern {
-//     pub fn alert(s: &str);
-// }
+#[wasm_bindgen]
+extern {
+    pub fn alert(s: &str);
+    pub fn logtime(i:u32);
+}
 
 /**
  * (0,0,0,0)のピクセルは0として判定されるので注意
@@ -92,49 +95,46 @@ pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height
     let integral_image = integral_image::<_, u32>(&gray_image);// (width+1,height+1)
     let integral_squared_image = integral_squared_image::<_, u32>(&gray_image);// (width+1,height+1)
 
-    let mut base_paper_image_vec:Vec<u8> = Vec::new();
-    for y in 0..height {
-        for x in 0..width {
+    let mut base_paper_image = image::GrayImage::new(width, height);
+    base_paper_image.enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let start_x:u32 = if x > radius {
-                    x - radius
-                } else {
-                    0
-                };
-            let start_y:u32 = if y > radius {
-                    y - radius
-                } else {
-                    0
-                };
-            let end_x:u32 = if x + radius < width {
-                    x + radius
-                } else {
-                    width - 1
-                };
-            let end_y:u32 = if y + radius < height {
-                    y + radius
-                } else {
-                    height- 1
-                };
+                x - radius
+            } else {
+                0
+            };
+        let start_y:u32 = if y > radius {
+                y - radius
+            } else {
+                0
+            };
+        let end_x:u32 = if x + radius < width {
+                x + radius
+            } else {
+                width - 1
+            };
+        let end_y:u32 = if y + radius < height {
+                y + radius
+            } else {
+                height- 1
+            };
 
-            let partial_sum:u32 = sum_image_pixels(&integral_image,start_x,start_y,end_x,end_y)[0];
-            let pixel_sum:u32 = (end_x - start_x + 1) * (end_y - start_y + 1);
+        let partial_sum:u32 = sum_image_pixels(&integral_image,start_x,start_y,end_x,end_y)[0];
+        let pixel_sum:u32 = (end_x - start_x + 1) * (end_y - start_y + 1);
 
-            let average:f64 = partial_sum as f64 / pixel_sum as f64;
-            let variance:f64 = variance(&integral_image, &integral_squared_image, start_x,start_y,end_x,end_y);
+        let average:f64 = partial_sum as f64 / pixel_sum as f64;
+        let variance:f64 = variance(&integral_image, &integral_squared_image, start_x,start_y,end_x,end_y);
 
-            let base_f64:f64 = average + variance.sqrt();
-            base_paper_image_vec.push(
-                if base_f64 > u8::max_value() as f64 {
-                    u8::max_value()
-                } else if base_f64 < u8::min_value() as f64 {
-                    u8::min_value()
-                } else {
-                    base_f64 as u8
-                }
-            );
-        }
-    }
-    base_paper_image_vec
+        let base_f64:f64 = average + variance.sqrt();
+        pixel[0] = if base_f64 > u8::max_value() as f64 {
+                u8::max_value()
+            } else if base_f64 < u8::min_value() as f64 {
+                u8::min_value()
+            } else {
+                base_f64 as u8
+            };
+    });
+
+    base_paper_image.to_vec()
 }
 
 #[wasm_bindgen]

@@ -121,6 +121,12 @@ function createImageData(grayImageU8Array, width, height) {
     return new ImageData(new Uint8ClampedArray(clampedArray), width, height);
 }
 
+function logtime(int) {
+    console.log(int);
+    console.log(window.performance.now());
+}
+window.logtime = logtime
+
 window.initImageData = initImageData
 window.changeRoughness = changeRoughness
 window.changeBrightness = changeBrightness

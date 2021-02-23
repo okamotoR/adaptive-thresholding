@@ -1,1 +1,3 @@
 矩形ではなく円積分
+integralVec保存
+rayon
