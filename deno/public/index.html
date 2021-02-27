@@ -23,7 +23,7 @@
 </body>
 </html>
 <script type="module">
-import init, { raw_img_to_gray_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./public/js/pkg/adaptive_thresholding.js";
+import init, { raw_img_to_gray_vec, generate_integral_image_vec, generate_integral_squared_image_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./public/js/pkg/adaptive_thresholding.js";
 import SliderInputManager from "./public/js/slider_input_manager.js";
 import CanvasManager from "./public/js/canvas_manager.js";
 
@@ -31,6 +31,8 @@ let initialized = false
 let width = null;
 let height = null;
 let seedGrayImageU8Array = null;
+let integralImageU32Array = null;
+let integralSquaredImageU32Array = null;
 let lineImageU8Array = null;
 
 const roughnessSliderManager = new SliderInputManager(
@@ -64,45 +66,22 @@ async function initImageData(event) {
         const buffer = await file.arrayBuffer();
         const raw_data = new Uint8Array(buffer);
         seedGrayImageU8Array = raw_img_to_gray_vec(raw_data);
+        integralImageU32Array = generate_integral_image_vec(seedGrayImageU8Array, width, height);
+        integralSquaredImageU32Array = generate_integral_squared_image_vec(seedGrayImageU8Array, width, height);
 
-        const basePaperImageU8Array = generate_base_paper_image_vec(seedGrayImageU8Array, width, height, roughnessSliderManager.value);
-        lineImageU8Array = generate_line_vec(seedGrayImageU8Array, basePaperImageU8Array);
-        const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
-
-        const imageData = createImageData(thresholdImageU8Array, width, height);
-        loadImageOnCanvas(imageData);
+        applyRoughness()
         initialized = true;
     }
     reader.readAsDataURL(file)
 }
 
-function changeRoughness(event) {
-    const value = event.target.value
-    if (isNaN(value)) {
-        return;
-    }
-    roughnessSliderManager.changeValue(Math.ceil(value))
-    if (!initialized) {
-        return;
-    }
-    const basePaperImageU8Array = generate_base_paper_image_vec(seedGrayImageU8Array, width, height, roughnessSliderManager.value);
+function applyRoughness() {
+    const basePaperImageU8Array = generate_base_paper_image_vec(integralImageU32Array, integralSquaredImageU32Array, width, height, roughnessSliderManager.value);
     lineImageU8Array = generate_line_vec(seedGrayImageU8Array, basePaperImageU8Array);
-    
-    const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
-    const imageData = createImageData(thresholdImageU8Array, width, height);
-    loadImageOnCanvas(imageData);
+    applyBrightness()
 }
 
-function changeBrightness(event) {
-    const value = event.target.value
-    if (isNaN(value)) {
-        return;
-    }
-    brightnessSliderManager.changeValue(Math.ceil(value))
-    if (!initialized) {
-        return;
-    }
-
+function applyBrightness() {
     const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
     const imageData = createImageData(thresholdImageU8Array, width, height);
     loadImageOnCanvas(imageData);
@@ -115,6 +94,30 @@ function createImageData(grayImageU8Array, width, height) {
 function loadImageOnCanvas(imageData) {
     window.console.log('load');
     canvasManager.loadImage(imageData, width, height);
+}
+
+function changeRoughness(event) {
+    const value = event.target.value
+    if (isNaN(value)) {
+        return;
+    }
+    roughnessSliderManager.changeValue(Math.ceil(value))
+    if (!initialized) {
+        return;
+    }
+    applyRoughness()
+}
+
+function changeBrightness(event) {
+    const value = event.target.value
+    if (isNaN(value)) {
+        return;
+    }
+    brightnessSliderManager.changeValue(Math.ceil(value))
+    if (!initialized) {
+        return;
+    }
+    applyBrightness()
 }
 
 function logtime(int) {

@@ -7,11 +7,10 @@ extern crate console_error_panic_hook;
 use wasm_bindgen::prelude::*;
 use std::io::Cursor;
 use std::panic;
-use rayon::prelude::*;
 use image::ImageBuffer;
 use image::DynamicImage;
 use image::io::Reader;
-use imageproc::integral_image::{integral_image, integral_squared_image, sum_image_pixels, variance};
+use imageproc::integral_image::{integral_image, integral_squared_image, sum_image_pixels};
 
 
 #[test]
@@ -25,7 +24,17 @@ fn normalize_gray_image_test2() {
 
 #[test]
 fn generate_base_paper_image_vec_test1() {
-    assert_eq!(generate_base_paper_image_vec(vec![1,1,1,1,10,1,1,1,1],3,3,1), vec![3+4,2+3,3+4,2+3,2+2,2+3,3+4,2+3,3+4]);
+    let gray_image = vec![1,1,1,1,10,1,1,1,1];
+    assert_eq!(
+        generate_base_paper_image_vec(
+            generate_integral_image_vec(gray_image.clone(), 3, 3),
+            generate_integral_squared_image_vec(gray_image, 3, 3),
+            3,
+            3,
+            1
+        ),
+        vec![3+4,2+3,3+4,2+3,2+2,2+3,3+4,2+3,3+4]
+    );
 }
 
 #[test]
@@ -84,24 +93,39 @@ pub fn normalize_gray_image(gray_image_vec: Vec<u8>) -> Vec<u8> {
         .collect()
 }
 
+#[wasm_bindgen]
+pub fn generate_integral_image_vec(gray_image_vec: Vec<u8>, width: u32, height :u32) -> Vec<u32> {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+    let gray_image = ImageBuffer::<image::Luma<u8>, Vec<_>>
+        ::from_vec(width, height, gray_image_vec).unwrap();
+    integral_image::<_, u32>(&gray_image).to_vec()// (width+1,height+1)
+}
+
+#[wasm_bindgen]
+pub fn generate_integral_squared_image_vec(gray_image_vec: Vec<u8>, width: u32, height :u32) -> Vec<u32> {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+    let gray_image = ImageBuffer::<image::Luma<u8>, Vec<_>>
+        ::from_vec(width, height, gray_image_vec).unwrap();
+    integral_squared_image::<_, u32>(&gray_image).to_vec()// (width+1,height+1)
+}
+
 // generate image without line
 // bottle neck
 // ￣￣￣\/\/￣￣￣ => average:￣￣￣----￣￣￣ + deviation:_____----_____ = base:￣￣￣￣￣￣￣￣
 #[wasm_bindgen]
-pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height :u32, radius: u32) -> Vec<u8> {
+pub fn generate_base_paper_image_vec(integral_image_vec: Vec<u32>, integral_squared_image_vec: Vec<u32>, width: u32, height :u32, radius: u32) -> Vec<u8> {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
-    let gray_image = ImageBuffer::<image::Luma<u8>, Vec<_>>
-        ::from_vec(width, height, gray_image_vec).unwrap();
-    let integral_image = integral_image::<_, u32>(&gray_image);// (width+1,height+1)
-    let integral_squared_image = integral_squared_image::<_, u32>(&gray_image);// (width+1,height+1)
+
+    let integral_image = ImageBuffer::<image::Luma<u32>, Vec<_>>::from_vec(width+1, height+1, integral_image_vec).unwrap();
+    let integral_squared_image = ImageBuffer::<image::Luma<u32>, Vec<_>>::from_vec(width+1, height+1, integral_squared_image_vec).unwrap();
 
     let mut base_paper_image = image::GrayImage::new(width, height);
     base_paper_image.enumerate_pixels_mut().for_each(|(x, y, pixel)| {
-            let start_x:u32 = if x > radius {
-                x - radius
-            } else {
-                0
-            };
+        let start_x:u32 = if x > radius {
+            x - radius
+        } else {
+            0
+        };
         let start_y:u32 = if y > radius {
                 y - radius
             } else {
@@ -119,18 +143,20 @@ pub fn generate_base_paper_image_vec(gray_image_vec: Vec<u8>, width: u32, height
             };
 
         let partial_sum:u32 = sum_image_pixels(&integral_image,start_x,start_y,end_x,end_y)[0];
+        let partial_sq_sum:u32 = sum_image_pixels(&integral_squared_image,start_x,start_y,end_x,end_y)[0];
         let pixel_sum:u32 = (end_x - start_x + 1) * (end_y - start_y + 1);
 
-        let average:f64 = partial_sum as f64 / pixel_sum as f64;
-        let variance:f64 = variance(&integral_image, &integral_squared_image, start_x,start_y,end_x,end_y);
+        let average = partial_sum as f64 / pixel_sum as f64;
+        let deviation:f64 = ((partial_sq_sum as f64 / pixel_sum as f64) - (average * average) as f64).sqrt();
 
-        let base_f64:f64 = average + variance.sqrt();
-        pixel[0] = if base_f64 > u8::max_value() as f64 {
+        let base:f64 = average + deviation;
+
+        pixel[0] = if base > u8::max_value() as f64 {
                 u8::max_value()
-            } else if base_f64 < u8::min_value() as f64 {
+            } else if base < u8::min_value() as f64 {
                 u8::min_value()
             } else {
-                base_f64 as u8
+                base as u8
             };
     });
 
