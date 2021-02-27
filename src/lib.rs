@@ -164,11 +164,24 @@ pub fn generate_line_vec(gray_image_vec: Vec<u8>, base_paper_image_vec: Vec<u8>)
 #[wasm_bindgen]
 pub fn threshold_line_vec(line_vec: Vec<u8>, threshold_level: u8) -> Vec<u8> {
     return line_vec.iter()
-    .map(|n| if *n < threshold_level {
-        u8::min_value()
-    } else {
-        u8::max_value()
-    })
-    .collect();
+        .map(|n|
+            if *n < threshold_level {
+                u8::min_value()
+            } else {
+                u8::max_value()
+            }
+        )
+        .collect();
 }
 
+#[wasm_bindgen]
+pub fn gray_vec_to_rgba_vec(gray_vec: Vec<u8>) -> Vec<u8> {
+    let mut rgba_vec : Vec<u8> = Vec::with_capacity(gray_vec.len());
+    for pixel in gray_vec {
+        rgba_vec.push(pixel);
+        rgba_vec.push(pixel);
+        rgba_vec.push(pixel);
+        rgba_vec.push(255);
+    }
+    return rgba_vec;
+}

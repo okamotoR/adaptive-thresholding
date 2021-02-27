@@ -16,14 +16,14 @@
         </span>
         <span>
             <span>brightness</span>
-            <input type="range" id="brightnessRange" max="255" min="0" step="1" onchange="changeBrightness(event)">
+            <input type="range" id="brightnessRange" max="255" min="0" step="1" oninput="changeBrightness(event)">
             <input type="number" id="brightnessNumber" max="255" min="0" onchange="changeBrightness(event)">
         </span>
     </div>
 </body>
 </html>
 <script type="module">
-import init, { raw_img_to_gray_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec } from "./public/js/pkg/adaptive_thresholding.js";
+import init, { raw_img_to_gray_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./public/js/pkg/adaptive_thresholding.js";
 import SliderInputManager from "./public/js/slider_input_manager.js";
 import CanvasManager from "./public/js/canvas_manager.js";
 
@@ -87,8 +87,8 @@ function changeRoughness(event) {
     }
     const basePaperImageU8Array = generate_base_paper_image_vec(seedGrayImageU8Array, width, height, roughnessSliderManager.value);
     lineImageU8Array = generate_line_vec(seedGrayImageU8Array, basePaperImageU8Array);
+    
     const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
-
     const imageData = createImageData(thresholdImageU8Array, width, height);
     loadImageOnCanvas(imageData);
 }
@@ -102,23 +102,19 @@ function changeBrightness(event) {
     if (!initialized) {
         return;
     }
-    const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
 
+    const thresholdImageU8Array = threshold_line_vec(lineImageU8Array, 255 - brightnessSliderManager.value);
     const imageData = createImageData(thresholdImageU8Array, width, height);
     loadImageOnCanvas(imageData);
+}
+
+function createImageData(grayImageU8Array, width, height) {
+    return new ImageData(new Uint8ClampedArray(gray_vec_to_rgba_vec(grayImageU8Array)), width, height);
 }
 
 function loadImageOnCanvas(imageData) {
     window.console.log('load');
     canvasManager.loadImage(imageData, width, height);
-}
-
-function createImageData(grayImageU8Array, width, height) {
-    let clampedArray = [];
-    grayImageU8Array.forEach(pixel => {
-        clampedArray.push(pixel, pixel, pixel, 255);
-    });
-    return new ImageData(new Uint8ClampedArray(clampedArray), width, height);
 }
 
 function logtime(int) {
