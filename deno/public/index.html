@@ -3,22 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Line Extractor</title>
 </head>
-<body>
-    <input type="file" accept="image/*" onchange="initImageData(event)">
-    <canvas id="workspace" width="400px" height="400px"></canvas>
-    <div>
-        <span>
-            <span>roughness</span>
-            <input type="range" id="roughnessRange" max="255" min="0" step="1" onchange="changeRoughness(event)">
-            <input type="number" id="roughnessNumber" max="255" min="0" onchange="changeRoughness(event)">
-        </span>
-        <span>
-            <span>brightness</span>
-            <input type="range" id="brightnessRange" max="255" min="0" step="1" oninput="changeBrightness(event)">
-            <input type="number" id="brightnessNumber" max="255" min="0" onchange="changeBrightness(event)">
-        </span>
+<body style="background-color: rgb(219, 219, 241)">
+    <div style="text-align: center;">
+        <div>
+            <div>線画抽出アプリ LineExtractor</div>
+            <div style="font-size: 0.7em;color: gray;">スマホ等で撮った線画を抽出するアプリです</div>
+        </div>
+        <div style="display: inline-block;">
+            <input type="file" accept="image/*" onchange="initImageData(event)">
+            <div id="canvas_container" style="width:80vw;height:80vh;"><canvas id="canvas"></canvas></div>
+        </div>
+        <div>
+            <div>
+                <span>roughness</span>
+                <input type="range" id="roughnessRange" max="255" min="0" step="1" onchange="changeRoughness(event)">
+                <input type="number" id="roughnessNumber" max="255" min="0" onchange="changeRoughness(event)">
+            </div>
+            <div>
+                <span>brightness</span>
+                <input type="range" id="brightnessRange" max="255" min="0" step="1" oninput="changeBrightness(event)">
+                <input type="number" id="brightnessNumber" max="255" min="0" onchange="changeBrightness(event)">
+            </div>
+            <div>
+                <button>
+                    <a download="lineDrawing" id="saveButton">保存</a>
+                </button>
+            </div>
+        </div>
     </div>
 </body>
 </html>
@@ -27,7 +40,7 @@ import init, { raw_img_to_gray_vec, generate_integral_image_vec, generate_integr
 import SliderInputManager from "./public/js/slider_input_manager.js";
 import CanvasManager from "./public/js/canvas_manager.js";
 
-let initialized = false
+let wasmIsInitialized = false
 let width = null;
 let height = null;
 let seedGrayImageU8Array = null;
@@ -45,10 +58,12 @@ const brightnessSliderManager = new SliderInputManager(
     document.getElementById('brightnessRange'),
     10
 );
-const canvasManager = new CanvasManager(document.getElementById('workspace'));
+const canvasEl = document.getElementById('canvas');
+const containerEl = document.getElementById('canvas_container');
+const canvasManager = new CanvasManager(canvasEl,containerEl);
 
 async function initImageData(event) {
-    if (!initialized) {
+    if (!wasmIsInitialized) {
         await init();
     }
     const file = event.target.files[0];
@@ -70,7 +85,7 @@ async function initImageData(event) {
         integralSquaredImageU32Array = generate_integral_squared_image_vec(seedGrayImageU8Array, width, height);
 
         applyRoughness()
-        initialized = true;
+        wasmIsInitialized = true;
     }
     reader.readAsDataURL(file)
 }
@@ -78,6 +93,11 @@ async function initImageData(event) {
 function applyRoughness() {
     const basePaperImageU8Array = generate_base_paper_image_vec(integralImageU32Array, integralSquaredImageU32Array, width, height, roughnessSliderManager.value);
     lineImageU8Array = generate_line_vec(seedGrayImageU8Array, basePaperImageU8Array);
+
+    // var histogram = Array(256).fill(0);
+    // lineImageU8Array.forEach(v => {
+    //     s[v]+=1;
+    // });
     applyBrightness()
 }
 
@@ -94,6 +114,8 @@ function createImageData(grayImageU8Array, width, height) {
 function loadImageOnCanvas(imageData) {
     window.console.log('load');
     canvasManager.loadImage(imageData, width, height);
+    const dataURL = document.getElementById('canvas').toDataURL('image/png');
+    document.getElementById('saveButton').href = dataURL;
 }
 
 function changeRoughness(event) {
@@ -102,7 +124,7 @@ function changeRoughness(event) {
         return;
     }
     roughnessSliderManager.changeValue(Math.ceil(value))
-    if (!initialized) {
+    if (!wasmIsInitialized) {
         return;
     }
     applyRoughness()
@@ -114,7 +136,7 @@ function changeBrightness(event) {
         return;
     }
     brightnessSliderManager.changeValue(Math.ceil(value))
-    if (!initialized) {
+    if (!wasmIsInitialized) {
         return;
     }
     applyBrightness()
