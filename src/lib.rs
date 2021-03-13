@@ -63,11 +63,7 @@ pub fn raw_img_to_gray_vec(raw_data: Vec<u8>, extension: String) -> Vec<u8> {
 pub fn decode_raw_data(raw_data: Vec<u8>, extension: String) -> DynamicImage {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
     let mut reader = Reader::new(Cursor::new(&raw_data));
-    match extension.as_str() {
-        "jpg" => reader.set_format(image::ImageFormat::Jpeg),
-        "JPG" => reader.set_format(image::ImageFormat::Jpeg),
-        _ => reader.set_format(image::ImageFormat::from_extension(extension).unwrap()),
-    }
+    reader.set_format(image::ImageFormat::from_extension(extension).unwrap());
     reader.decode().unwrap()
 }
 
