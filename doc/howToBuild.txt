@@ -12,3 +12,8 @@ wasm-bindgen target/wasm32-unknown-unknown/release/adaptive_thresholding.wasm --
 wasm-pack build --target web
 
 deno run deno/hello.ts --allow-read
+
+
+firebaseのやり方
+firebase login
+firebase deploy

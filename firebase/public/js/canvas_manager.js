@@ -21,7 +21,6 @@ class CanvasManager {
             this.containerEl.clientWidth / width,
             this.containerEl.clientHeight / height
         );
-        console.log(lessScaleRatio)
         this.canvasEl.width = width * lessScaleRatio;
         this.canvasEl.height = height * lessScaleRatio;
         this.ctx.scale(lessScaleRatio,lessScaleRatio);

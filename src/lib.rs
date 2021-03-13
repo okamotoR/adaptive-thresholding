@@ -50,22 +50,25 @@ extern {
 }
 
 /**
- * (0,0,0,0)のピクセルは0として判定されるので注意
+ * (0,0,0,0)の透明ピクセルは0(黒)として判定されるので注意
  */
 #[wasm_bindgen]
-pub fn raw_img_to_gray_vec(raw_data: Vec<u8>) -> Vec<u8> {
+pub fn raw_img_to_gray_vec(raw_data: Vec<u8>, extension: String) -> Vec<u8> {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
-    let image = decode_raw_data(raw_data);
+    let image = decode_raw_data(raw_data, extension);
     let gray_image = image.grayscale();
     let gray_vec = gray_image.to_luma8().into_vec();
     normalize_gray_image(gray_vec)
 }
 
-pub fn decode_raw_data(raw_data: Vec<u8>) -> DynamicImage {
+pub fn decode_raw_data(raw_data: Vec<u8>, extension: String) -> DynamicImage {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
-    let reader = Reader::new(Cursor::new(raw_data))
-        .with_guessed_format()
-        .expect("Cursor io never fails");
+    let mut reader = Reader::new(Cursor::new(raw_data));
+    match extension.as_str() {
+        "jpg" => reader.set_format(image::ImageFormat::Jpeg),
+        "JPG" => reader.set_format(image::ImageFormat::Jpeg),
+        _ => reader.set_format(image::ImageFormat::from_extension(extension).unwrap()),
+    }
     reader.decode().unwrap()
 }
 

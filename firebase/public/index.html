@@ -1,19 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Line Extractor</title>
 </head>
+<base href="/">
 <body style="background-color: rgb(219, 219, 241)">
     <div style="text-align: center;">
-        <div>
+        <div style="margin: 1rem;">
             <div>線画抽出アプリ LineExtractor</div>
             <div style="font-size: 0.7em;color: gray;">スマホ等で撮った線画を抽出するアプリです</div>
         </div>
         <div style="display: inline-block;">
             <input type="file" accept="image/*" onchange="initImageData(event)">
-            <div id="canvas_container" style="width:80vw;height:80vh;"><canvas id="canvas"></canvas></div>
+            <div id="canvas_container" style="width:90vw;height:90vmin;"><canvas id="canvas"></canvas></div>
         </div>
         <div>
             <div>
@@ -36,9 +37,9 @@
 </body>
 </html>
 <script type="module">
-import init, { raw_img_to_gray_vec, generate_integral_image_vec, generate_integral_squared_image_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./public/js/pkg/adaptive_thresholding.js";
-import SliderInputManager from "./public/js/slider_input_manager.js";
-import CanvasManager from "./public/js/canvas_manager.js";
+import init, { raw_img_to_gray_vec, generate_integral_image_vec, generate_integral_squared_image_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./js/pkg/adaptive_thresholding.js";
+import SliderInputManager from "./js/slider_input_manager.js";
+import CanvasManager from "./js/canvas_manager.js";
 
 let wasmIsInitialized = false
 let width = null;
@@ -71,21 +72,28 @@ async function initImageData(event) {
     // FileReaderはawait不可
     const reader = new FileReader();
     reader.onload = async function() {
-        const img = await new Promise((resolve) => {
-            const img = new Image();
-            img.src = reader.result;
-            img.onload = () => resolve(img);
-        })
-        width = img.width;
-        height = img.height;
-        const buffer = await file.arrayBuffer();
-        const raw_data = new Uint8Array(buffer);
-        seedGrayImageU8Array = raw_img_to_gray_vec(raw_data);
-        integralImageU32Array = generate_integral_image_vec(seedGrayImageU8Array, width, height);
-        integralSquaredImageU32Array = generate_integral_squared_image_vec(seedGrayImageU8Array, width, height);
+        try {
+            const ext = file.name.split('.').pop();
 
-        applyRoughness()
-        wasmIsInitialized = true;
+            const img = await new Promise((resolve) => {
+                const img = new Image();
+                img.src = reader.result;
+                img.onload = () => resolve(img);
+            })
+            width = img.width;
+            height = img.height;
+            const buffer = await file.arrayBuffer();
+            const raw_data = new Uint8Array(buffer);
+
+            seedGrayImageU8Array = raw_img_to_gray_vec(raw_data,ext);
+            integralImageU32Array = generate_integral_image_vec(seedGrayImageU8Array, width, height);
+            integralSquaredImageU32Array = generate_integral_squared_image_vec(seedGrayImageU8Array, width, height);
+
+            applyRoughness()
+            wasmIsInitialized = true;
+        } catch (error) {
+            window.alert("申し訳ありません。\nプログラムでエラーが発生しました。");
+        }
     }
     reader.readAsDataURL(file)
 }

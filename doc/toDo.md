@@ -1,5 +1,5 @@
 pwa
 admob
-firebase
+seo
 ヒストグラム
 矩形ではなく円積分
