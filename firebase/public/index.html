@@ -9,7 +9,7 @@
 <body style="background-color: rgb(219, 219, 241)">
     <div style="text-align: center;">
         <div style="margin: 1rem;">
-            <div>線画抽出アプリ LineExtractor</div>
+            <div>線画抽出アプリ LineExtractor(β)</div>
             <div style="font-size: 0.7em;color: gray;">スマホ等で撮った線画を抽出するアプリです</div>
         </div>
         <div style="display: inline-block;">
@@ -85,7 +85,7 @@ async function initImageData(event) {
             const buffer = await file.arrayBuffer();
             const raw_data = new Uint8Array(buffer);
 
-            seedGrayImageU8Array = raw_img_to_gray_vec(raw_data,ext);
+            seedGrayImageU8Array = raw_img_to_gray_vec(raw_data, ext);
             integralImageU32Array = generate_integral_image_vec(seedGrayImageU8Array, width, height);
             integralSquaredImageU32Array = generate_integral_squared_image_vec(seedGrayImageU8Array, width, height);
 
