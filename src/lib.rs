@@ -11,6 +11,8 @@ use image::DynamicImage;
 use image::io::Reader;
 use imageproc::integral_image::{integral_image, integral_squared_image, sum_image_pixels};
 
+// 以下ではうまくいかなかった
+// J. Sauvola et. al., “Adaptive document image binarization,” Pattern Recognition 33(2), pp.225–236, 2000.
 
 #[test]
 fn normalize_gray_image_test1() {
@@ -56,6 +58,17 @@ pub fn raw_img_to_gray_vec(raw_data: Vec<u8>, extension: String) -> Vec<u8> {
     panic::set_hook(Box::new(console_error_panic_hook::hook));
     let image = decode_raw_data(raw_data, extension);
     let gray_image = image.grayscale();
+    let gray_vec = gray_image.to_luma8().into_vec();
+    normalize_gray_image(gray_vec)
+}
+
+#[wasm_bindgen]
+pub fn rgba_vec_to_gray_vec(rgba_image_vec: Vec<u8>, width: u32, height :u32) -> Vec<u8> {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+    let rgba_image = ImageBuffer::<image::Rgba<u8>, Vec<_>>
+        ::from_vec(width, height, rgba_image_vec).unwrap();
+
+    let gray_image = DynamicImage::ImageRgba8(rgba_image).grayscale();
     let gray_vec = gray_image.to_luma8().into_vec();
     normalize_gray_image(gray_vec)
 }

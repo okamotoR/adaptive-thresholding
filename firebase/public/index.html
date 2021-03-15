@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <script data-ad-client="ca-pub-5922962404970660" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Line Extractor</title>
+    <meta name="keywords" content="線画抽出,二値化,画像処理">
+    <title>線画抽出アプリ Line Extractor</title>
 </head>
 <base href="/">
 <body style="background-color: rgb(219, 219, 241)">
     <div style="text-align: center;">
         <div style="margin: 1rem;">
-            <div>線画抽出アプリ LineExtractor(β)</div>
+            <h3 style="margin: 0;">線画抽出アプリ LineExtractor</h3>
             <div style="font-size: 0.7em;color: gray;">スマホ等で撮った線画を抽出するアプリです</div>
         </div>
         <div style="display: inline-block;">
@@ -37,9 +39,9 @@
 </body>
 </html>
 <script type="module">
-import init, { raw_img_to_gray_vec, generate_integral_image_vec, generate_integral_squared_image_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./js/pkg/adaptive_thresholding.js";
-import SliderInputManager from "./js/slider_input_manager.js";
-import CanvasManager from "./js/canvas_manager.js";
+import init, { rgba_vec_to_gray_vec, generate_integral_image_vec, generate_integral_squared_image_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./js/pkg/adaptive_thresholding.js?version=1";
+import SliderInputManager from "./js/slider_input_manager.js?version=1";
+import CanvasManager from "./js/canvas_manager.js?version=1";
 
 let wasmIsInitialized = false
 let width = null;
@@ -82,10 +84,10 @@ async function initImageData(event) {
             })
             width = img.width;
             height = img.height;
-            const buffer = await file.arrayBuffer();
-            const raw_data = new Uint8Array(buffer);
+            const imageData = getImageData(img);
+            const rgbaArray = imageData.data;
 
-            seedGrayImageU8Array = raw_img_to_gray_vec(raw_data, ext);
+            seedGrayImageU8Array = rgba_vec_to_gray_vec(rgbaArray, width, height);
             integralImageU32Array = generate_integral_image_vec(seedGrayImageU8Array, width, height);
             integralSquaredImageU32Array = generate_integral_squared_image_vec(seedGrayImageU8Array, width, height);
 
@@ -96,6 +98,19 @@ async function initImageData(event) {
         }
     }
     reader.readAsDataURL(file)
+}
+
+function getImageData(img) {
+    let canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    let context = canvas.getContext('2d');
+
+    context.drawImage(img, 0, 0);
+
+    let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    return imageData;
 }
 
 function applyRoughness() {
