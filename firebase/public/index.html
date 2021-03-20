@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="keywords" content="線画抽出,二値化,画像処理">
+    <link rel=" manifest" href="manifest.json">
     <title>線画抽出アプリ Line Extractor</title>
 </head>
 <base href="/">
@@ -22,11 +23,15 @@
             <div>
                 <span>roughness</span>
                 <input type="range" id="roughnessRange" max="255" min="0" step="1" onchange="changeRoughness(event)">
+                <button onclick="minusRoughness()">-</button>
+                <button onclick="addRoughness()">+</button>
                 <input type="number" id="roughnessNumber" max="255" min="0" onchange="changeRoughness(event)">
             </div>
             <div>
                 <span>brightness</span>
                 <input type="range" id="brightnessRange" max="255" min="0" step="1" oninput="changeBrightness(event)">
+                <button onclick="minusBrightness()">-</button>
+                <button onclick="addBrightness()">+</button>
                 <input type="number" id="brightnessNumber" max="255" min="0" onchange="changeBrightness(event)">
             </div>
             <div>
@@ -40,8 +45,8 @@
 </html>
 <script type="module">
 import init, { rgba_vec_to_gray_vec, generate_integral_image_vec, generate_integral_squared_image_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./js/pkg/adaptive_thresholding.js?version=1";
-import SliderInputManager from "./js/slider_input_manager.js?version=1";
-import CanvasManager from "./js/canvas_manager.js?version=1";
+import SliderInputManager from "./js/slider_input_manager.js?version=2";
+import CanvasManager from "./js/canvas_manager.js?version=2";
 
 let wasmIsInitialized = false
 let width = null;
@@ -54,12 +59,16 @@ let lineImageU8Array = null;
 const roughnessSliderManager = new SliderInputManager(
     document.getElementById('roughnessNumber'),
     document.getElementById('roughnessRange'),
-    10
+    10,
+    255,
+    0
 );
 const brightnessSliderManager = new SliderInputManager(
     document.getElementById('brightnessNumber'),
     document.getElementById('brightnessRange'),
-    10
+    10,
+    255,
+    0
 );
 const canvasEl = document.getElementById('canvas');
 const containerEl = document.getElementById('canvas_container');
@@ -153,12 +162,44 @@ function changeRoughness(event) {
     applyRoughness()
 }
 
+function addRoughness() {
+    roughnessSliderManager.addValue();
+    if (!wasmIsInitialized) {
+        return;
+    }
+    applyRoughness()
+}
+
+function minusRoughness(value) {
+    roughnessSliderManager.minusValue();
+    if (!wasmIsInitialized) {
+        return;
+    }
+    applyRoughness()
+}
+
 function changeBrightness(event) {
     const value = event.target.value
     if (isNaN(value)) {
         return;
     }
     brightnessSliderManager.changeValue(Math.ceil(value))
+    if (!wasmIsInitialized) {
+        return;
+    }
+    applyBrightness()
+}
+
+function addBrightness() {
+    brightnessSliderManager.addValue();
+    if (!wasmIsInitialized) {
+        return;
+    }
+    applyBrightness()
+}
+
+function minusBrightness(value) {
+    brightnessSliderManager.minusValue();
     if (!wasmIsInitialized) {
         return;
     }
@@ -174,4 +215,8 @@ window.logtime = logtime
 window.initImageData = initImageData
 window.changeRoughness = changeRoughness
 window.changeBrightness = changeBrightness
+window.addRoughness = addRoughness
+window.minusRoughness = minusRoughness
+window.addBrightness = addBrightness
+window.minusBrightness = minusBrightness
 </script>

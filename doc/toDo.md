@@ -1,7 +1,7 @@
 sampleimage
-pwa
-analytics
+pwa,icons
 +-button
+analytics
 admob
 cache
 ヒストグラム
