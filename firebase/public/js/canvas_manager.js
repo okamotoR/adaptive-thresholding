@@ -26,6 +26,24 @@ class CanvasManager {
         this.ctx.scale(lessScaleRatio,lessScaleRatio);
         this.ctx.drawImage(this.tmpCanvasEl, 0, 0);
     }
+
+    loadImageElement(imageEl, width, height) {
+        this.tmpCanvasEl.width = width;
+        this.tmpCanvasEl.height = height;
+        this.tmpCtx.drawImage(imageEl,0,0);
+        this.ctx.restore();// scale=1に復元
+        this.ctx.clearRect(0, 0, this.ctx.canvas.clientWidth, this.ctx.canvas.clientHeight);
+        this.ctx.save();// scale=1をセーブ
+
+        const lessScaleRatio = Math.min(
+            this.containerEl.clientWidth / width,
+            this.containerEl.clientHeight / height
+        );
+        this.canvasEl.width = width * lessScaleRatio;
+        this.canvasEl.height = height * lessScaleRatio;
+        this.ctx.scale(lessScaleRatio,lessScaleRatio);
+        this.ctx.drawImage(this.tmpCanvasEl, 0, 0);
+    }
 }
 
 export default CanvasManager;

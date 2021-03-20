@@ -45,10 +45,9 @@
 </html>
 <script type="module">
 import init, { rgba_vec_to_gray_vec, generate_integral_image_vec, generate_integral_squared_image_vec, generate_base_paper_image_vec, generate_line_vec, threshold_line_vec, gray_vec_to_rgba_vec } from "./js/pkg/adaptive_thresholding.js?version=1";
-import SliderInputManager from "./js/slider_input_manager.js?version=2";
-import CanvasManager from "./js/canvas_manager.js?version=2";
+import SliderInputManager from "./js/slider_input_manager.js";
+import CanvasManager from "./js/canvas_manager.js";
 
-let wasmIsInitialized = false
 let width = null;
 let height = null;
 let seedGrayImageU8Array = null;
@@ -59,14 +58,14 @@ let lineImageU8Array = null;
 const roughnessSliderManager = new SliderInputManager(
     document.getElementById('roughnessNumber'),
     document.getElementById('roughnessRange'),
-    10,
+    88,
     255,
     0
 );
 const brightnessSliderManager = new SliderInputManager(
     document.getElementById('brightnessNumber'),
     document.getElementById('brightnessRange'),
-    10,
+    65,
     255,
     0
 );
@@ -74,10 +73,28 @@ const canvasEl = document.getElementById('canvas');
 const containerEl = document.getElementById('canvas_container');
 const canvasManager = new CanvasManager(canvasEl,containerEl);
 
+await init();
+setSample();
+
+async function setSample() {
+    const img = await new Promise((resolve) => {
+        const img = new Image();
+        img.src = "./images/sample_before.png";
+        img.onload = () => resolve(img);
+    })
+    width = img.width;
+    height = img.height;
+    const imageData = getImageData(img);
+    const rgbaArray = imageData.data;
+
+    seedGrayImageU8Array = rgba_vec_to_gray_vec(rgbaArray, width, height);
+    integralImageU32Array = generate_integral_image_vec(seedGrayImageU8Array, width, height);
+    integralSquaredImageU32Array = generate_integral_squared_image_vec(seedGrayImageU8Array, width, height);
+
+    applyRoughness();
+}
+
 async function initImageData(event) {
-    if (!wasmIsInitialized) {
-        await init();
-    }
     const file = event.target.files[0];
 
     // FileReaderはawait不可
@@ -100,8 +117,7 @@ async function initImageData(event) {
             integralImageU32Array = generate_integral_image_vec(seedGrayImageU8Array, width, height);
             integralSquaredImageU32Array = generate_integral_squared_image_vec(seedGrayImageU8Array, width, height);
 
-            applyRoughness()
-            wasmIsInitialized = true;
+            applyRoughness();
         } catch (error) {
             window.alert("申し訳ありません。\nプログラムでエラーが発生しました。");
         }
@@ -156,25 +172,16 @@ function changeRoughness(event) {
         return;
     }
     roughnessSliderManager.changeValue(Math.ceil(value))
-    if (!wasmIsInitialized) {
-        return;
-    }
     applyRoughness()
 }
 
 function addRoughness() {
     roughnessSliderManager.addValue();
-    if (!wasmIsInitialized) {
-        return;
-    }
     applyRoughness()
 }
 
 function minusRoughness(value) {
     roughnessSliderManager.minusValue();
-    if (!wasmIsInitialized) {
-        return;
-    }
     applyRoughness()
 }
 
@@ -184,25 +191,16 @@ function changeBrightness(event) {
         return;
     }
     brightnessSliderManager.changeValue(Math.ceil(value))
-    if (!wasmIsInitialized) {
-        return;
-    }
     applyBrightness()
 }
 
 function addBrightness() {
     brightnessSliderManager.addValue();
-    if (!wasmIsInitialized) {
-        return;
-    }
     applyBrightness()
 }
 
 function minusBrightness(value) {
     brightnessSliderManager.minusValue();
-    if (!wasmIsInitialized) {
-        return;
-    }
     applyBrightness()
 }
 
