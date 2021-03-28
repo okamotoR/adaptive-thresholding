@@ -1,4 +1,3 @@
-sampleimage
 before after
 pwa,icons
 admob

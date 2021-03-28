@@ -1,19 +1,7 @@
-rust+denoのやり方
-
-wasm-bindgen...rustをwebassemblyにするためのコマンド群
-wasm-pack...wasm-bindgenをラッピングしたやつ
-
-wasm-packはdenoに対応してないので, wasm-packでtarget作成後に
-wasm-bindgenも使ってtsファイルを作る。
-どう見ても変なやり方
-wasm-pack build
-wasm-bindgen target/wasm32-unknown-unknown/release/adaptive_thresholding.wasm --out-dir pkg --target deno
-直接webで使う時
+rust,wasm
 wasm-pack build --target web
 
-deno run deno/hello.ts --allow-read
 
-
-firebaseのやり方
+firebase
 firebase login
 firebase deploy

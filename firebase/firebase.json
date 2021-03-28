@@ -22,7 +22,7 @@
           },
           {
             "key": "Cache-Control",
-            "value": "no-cache"
+            "value": "max-age=3600"
           }
         ]
       },
@@ -32,6 +32,10 @@
           {
             "key": "Content-Type",
             "value": "application/wasm"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "max-age=3600"
           }
         ]
       }
